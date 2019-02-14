@@ -121,6 +121,26 @@ public class SwiftContactsServicePlugin: NSObject, FlutterPlugin {
         return true;
     }
     
+    func updateContact(dictionary : [String:Any]) -> Bool{
+        guard let identifier = dictionary["identifier"] as? String else{
+            return false;
+        }
+        let store = CNContactStore()
+        let keys = [CNContactIdentifierKey as NSString]
+        do{
+            if let contact = try store.unifiedContact(withIdentifier: identifier, keysToFetch: keys).mutableCopy() as? CNMutableContact{
+                let request = CNSaveRequest()
+                request.update(contact)
+                try store.execute(request)
+            }
+        }
+        catch{
+            print(error.localizedDescription)
+            return false;
+        }
+        return true;
+    }
+    
     func dictionaryToContact(dictionary : [String:Any]) -> CNMutableContact{
         let contact = CNMutableContact()
 
