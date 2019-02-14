@@ -315,9 +315,73 @@ public class ContactsServicePlugin implements MethodCallHandler {
 	
   private boolean updateContact(Contact contact){
     ArrayList<ContentProviderOperation> ops = new ArrayList<>();
-    ops.add(ContentProviderOperation.newDelete(ContactsContract.Data.CONTENT_URI)
+    ops.add(ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
             .withSelection(ContactsContract.Data.CONTACT_ID + "=?", new String[]{String.valueOf(contact.identifier)})
             .build());
+    try {
+      contentResolver.applyBatch(ContactsContract.AUTHORITY, ops);
+      return true;
+    } catch (Exception e) {
+      return false;
+    }
+	  
+	  
+    ArrayList<ContentProviderOperation> ops = new ArrayList<>();
+
+    ContentProviderOperation.Builder op;
+
+    op = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
+            .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, contact.identifier)
+	    .withValue(ContactsContract.Data.MIMETYPE, StructuredName.CONTENT_ITEM_TYPE)
+            .withValue(StructuredName.GIVEN_NAME, contact.givenName)
+            .withValue(StructuredName.MIDDLE_NAME, contact.middleName)
+            .withValue(StructuredName.FAMILY_NAME, contact.familyName)
+            .withValue(StructuredName.PREFIX, contact.prefix)
+            .withValue(StructuredName.SUFFIX, contact.suffix);
+    ops.add(op.build());
+
+    op = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
+            .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, contact.identifier)
+	    .withValue(ContactsContract.Data.MIMETYPE, Organization.CONTENT_ITEM_TYPE)
+            .withValue(Organization.COMPANY, contact.company)
+            .withValue(Organization.TITLE, contact.jobTitle);
+    ops.add(op.build());
+
+    op.withYieldAllowed(true);
+
+    //Phones
+    for(Item phone : contact.phones){
+      op = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
+              .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, contact.identifier)
+              .withValue(ContactsContract.Data.MIMETYPE, CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
+              .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, phone.value)
+              .withValue(CommonDataKinds.Phone.TYPE, Item.stringToPhoneType(phone.label));
+      ops.add(op.build());
+    }
+
+    //Emails
+    for (Item email : contact.emails) {
+      op = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
+              .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, contact.identifier)
+              .withValue(ContactsContract.Data.MIMETYPE, CommonDataKinds.Email.CONTENT_ITEM_TYPE)
+              .withValue(CommonDataKinds.Email.ADDRESS, email.value)
+              .withValue(CommonDataKinds.Email.TYPE, Item.stringToEmailType(email.label));
+      ops.add(op.build());
+    }
+    //Postal addresses
+    for (PostalAddress address : contact.postalAddresses) {
+      op = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
+              .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, contact.identifier)
+              .withValue(ContactsContract.Data.MIMETYPE, CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE)
+              .withValue(CommonDataKinds.StructuredPostal.TYPE, PostalAddress.stringToPostalAddressType(address.label))
+              .withValue(CommonDataKinds.StructuredPostal.STREET, address.street)
+              .withValue(CommonDataKinds.StructuredPostal.CITY, address.city)
+              .withValue(CommonDataKinds.StructuredPostal.REGION, address.region)
+              .withValue(CommonDataKinds.StructuredPostal.POSTCODE, address.postcode)
+              .withValue(CommonDataKinds.StructuredPostal.COUNTRY, address.country);
+      ops.add(op.build());
+    }
+
     try {
       contentResolver.applyBatch(ContactsContract.AUTHORITY, ops);
       return true;
