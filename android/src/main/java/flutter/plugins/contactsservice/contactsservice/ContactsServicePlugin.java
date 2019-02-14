@@ -312,5 +312,18 @@ public class ContactsServicePlugin implements MethodCallHandler {
       return false;
     }
   }
+	
+  private boolean updateContact(Contact contact){
+    ArrayList<ContentProviderOperation> ops = new ArrayList<>();
+    ops.add(ContentProviderOperation.newDelete(ContactsContract.Data.CONTENT_URI)
+            .withSelection(ContactsContract.Data.CONTACT_ID + "=?", new String[]{String.valueOf(contact.identifier)})
+            .build());
+    try {
+      contentResolver.applyBatch(ContactsContract.AUTHORITY, ops);
+      return true;
+    } catch (Exception e) {
+      return false;
+    }
+  }
 
 }
