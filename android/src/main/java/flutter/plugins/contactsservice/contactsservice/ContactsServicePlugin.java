@@ -66,6 +66,14 @@ public class ContactsServicePlugin implements MethodCallHandler {
           result.error(null, "Failed to delete the contact, make sure it has a valid identifier", null);
         }
         break;
+      case "updateContact":
+	Contact ct = Contact.fromMap((HashMap)call.arguments);
+	if(this.updateContact(c)) {
+	  result.success(null);
+	} else {
+	  result.error(null, "Failed to update the contact", null);
+	}
+	break;
       default:
         result.notImplemented();
     }
