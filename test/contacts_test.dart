@@ -47,6 +47,24 @@ void main() {
     ));
     expectMethodCall(log, 'addContact');
   });
+  
+  test('should update contact', () async {
+    await ContactsService.updateContact(Contact(
+      givenName: 'givenName',
+      emails: [Item(label: 'label'),Item(label: 'label2')],
+      phones: [Item(label: 'label'),Item(label: 'label2')],
+      postalAddresses: [PostalAddress(label: 'label'),PostalAddress(label: 'label2')],
+    ));
+    expectMethodCall(log, 'updateContact');
+    
+    final Iterable contacts = await ContactsService.getContacts();
+    expect(contacts.length, 2);
+    expect(contacts, everyElement(isInstanceOf<Contact>()));
+    expect(contacts.toList()[0].givenName, 'givenName1');
+    expect(contacts.toList()[1].postalAddresses.toList().length, 2);
+    expect(contacts.toList()[1].emails.toList().length, 2);
+    expect(contacts.toList()[1].phones.toList().length, 2);
+  });
 
   test('should delete contact', () async {
     await ContactsService.deleteContact(Contact(
