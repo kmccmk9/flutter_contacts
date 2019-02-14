@@ -32,6 +32,13 @@ public class SwiftContactsServicePlugin: NSObject, FlutterPlugin {
             else{
                 result(FlutterError(code: "", message: "Failed to delete contact, make sure it has a valid identifier", details: nil))
             }
+        case "updateContact":
+            if(updateContact(dictionary: call.arguments as! [String : Any])){
+                result(nil)
+            }
+            else{
+                result(FlutterError(code: "", message: "Failed to update contact, make sure it has a valid identifier", details: nil))
+            }
         default:
             result(FlutterMethodNotImplemented)
         }
