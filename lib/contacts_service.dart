@@ -26,6 +26,18 @@ class ContactsService {
   /// Deletes the [contact] if it has a valid identifier
   static Future deleteContact(Contact contact) =>
       _channel.invokeMethod('deleteContact', Contact._toMap(contact));
+
+  /// Updates the [contact] if it has a valid identifier
+  static Future<bool> updateContact(Contact contact) async {
+      print('Entered updateContact Future');
+      //bool result = await _channel.invokeMethod('updateContact', Contact._toMap(contact));
+
+      Map<dynamic, dynamic> contactMap = Contact._toMap(contact);
+      _channel.invokeMethod('updateContact', Contact._toMap(contact)).then((blnResult) {
+        print('Returning result ' + blnResult.toString() + ' from updateContact Future');
+        return blnResult;
+      });
+  }
 }
 
 class Contact {
