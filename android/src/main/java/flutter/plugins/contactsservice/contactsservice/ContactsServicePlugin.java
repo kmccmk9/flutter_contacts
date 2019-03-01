@@ -18,6 +18,7 @@ import android.os.Build;
 import android.os.RemoteException;
 import android.provider.ContactsContract;
 import android.text.TextUtils;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -67,13 +68,13 @@ public class ContactsServicePlugin implements MethodCallHandler {
         }
         break;
       case "updateContact":
-	Contact ct = Contact.fromMap((HashMap)call.arguments);
-	if(this.updateContact(c)) {
-	  result.success(null);
-	} else {
-	  result.error(null, "Failed to update the contact", null);
-	}
-	break;
+        Contact cta = Contact.fromMap((HashMap)call.arguments);
+        if(this.updateContact(cta)) {
+          result.success(null);
+        } else {
+          result.error(null, "Failed to update the contact", null);
+        }
+        break;
       default:
         result.notImplemented();
     }
@@ -206,8 +207,8 @@ public class ContactsServicePlugin implements MethodCallHandler {
       }
       //ORG
       else if (mimeType.equals(Organization.CONTENT_ITEM_TYPE)) {
-        contact.company = cursor.getString(cursor.getColumnIndex(Organization.COMPANY));
-        contact.jobTitle = cursor.getString(cursor.getColumnIndex(Organization.TITLE));
+          contact.company = cursor.getString(cursor.getColumnIndex(Organization.COMPANY));
+          contact.jobTitle = cursor.getString(cursor.getColumnIndex(Organization.TITLE));
       }
       //ADDRESSES
       else if (mimeType.equals(StructuredPostal.CONTENT_ITEM_TYPE)) {
@@ -314,65 +315,76 @@ public class ContactsServicePlugin implements MethodCallHandler {
   }
 	
   private boolean updateContact(Contact contact){
-    ArrayList<ContentProviderOperation> ops = new ArrayList<>();
-    ops.add(ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
-            .withSelection(ContactsContract.Data.CONTACT_ID + "=?", new String[]{String.valueOf(contact.identifier)})
-            .build());
-    try {
-      contentResolver.applyBatch(ContactsContract.AUTHORITY, ops);
-      return true;
-    } catch (Exception e) {
-      return false;
-    }
-	  
-	  
-    ArrayList<ContentProviderOperation> ops = new ArrayList<>();
 
+    ArrayList<ContentProviderOperation> ops = new ArrayList<>();
     ContentProviderOperation.Builder op;
 
+    // Drop all details about contact except name
+    op = ContentProviderOperation.newDelete(ContactsContract.Data.CONTENT_URI)
+            .withSelection(ContactsContract.Data.CONTACT_ID + "=? AND " + ContactsContract.Data.MIMETYPE + "=?",
+                    new String[]{String.valueOf(contact.identifier), ContactsContract.CommonDataKinds.Organization.CONTENT_ITEM_TYPE});
+    ops.add(op.build());
+
+    op = ContentProviderOperation.newDelete(ContactsContract.Data.CONTENT_URI)
+            .withSelection(ContactsContract.Data.CONTACT_ID + "=? AND " + ContactsContract.Data.MIMETYPE + "=?",
+                    new String[]{String.valueOf(contact.identifier), Phone.CONTENT_ITEM_TYPE});
+    ops.add(op.build());
+
+    op = ContentProviderOperation.newDelete(ContactsContract.Data.CONTENT_URI)
+             .withSelection(ContactsContract.Data.CONTACT_ID +"=? AND " + ContactsContract.Data.MIMETYPE + "=?",
+                    new String[]{String.valueOf(contact.identifier), ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE});
+    ops.add(op.build());
+
+    op = ContentProviderOperation.newDelete(ContactsContract.Data.CONTENT_URI)
+             .withSelection(ContactsContract.Data.CONTACT_ID + "=? AND " + ContactsContract.Data.MIMETYPE + "=?",
+                    new String[]{String.valueOf(contact.identifier), ContactsContract.CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE});
+    ops.add(op.build());
+
+    // Update data (name)
     op = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
-            .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, contact.identifier)
-	    .withValue(ContactsContract.Data.MIMETYPE, StructuredName.CONTENT_ITEM_TYPE)
+            .withSelection(ContactsContract.Data.CONTACT_ID + "=? AND " + ContactsContract.Data.MIMETYPE + "=?",
+                    new String[]{String.valueOf(contact.identifier), ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE})
             .withValue(StructuredName.GIVEN_NAME, contact.givenName)
-            .withValue(StructuredName.MIDDLE_NAME, contact.middleName)
+            .withValue(StructuredName.MIDDLE_NAME, "pleaseupdate")
             .withValue(StructuredName.FAMILY_NAME, contact.familyName)
             .withValue(StructuredName.PREFIX, contact.prefix)
             .withValue(StructuredName.SUFFIX, contact.suffix);
     ops.add(op.build());
 
-    op = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
-            .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, contact.identifier)
-	    .withValue(ContactsContract.Data.MIMETYPE, Organization.CONTENT_ITEM_TYPE)
+    // Insert data back into contact
+    op = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
+            .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Organization.CONTENT_ITEM_TYPE)
+            .withValue(ContactsContract.Data.RAW_CONTACT_ID, contact.identifier)
+            .withValue(Organization.TYPE, Organization.TYPE_WORK)
             .withValue(Organization.COMPANY, contact.company)
             .withValue(Organization.TITLE, contact.jobTitle);
     ops.add(op.build());
 
-    op.withYieldAllowed(true);
-
-    //Phones
-    for(Item phone : contact.phones){
-      op = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
-              .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, contact.identifier)
-              .withValue(ContactsContract.Data.MIMETYPE, CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
-              .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, phone.value)
-              .withValue(CommonDataKinds.Phone.TYPE, Item.stringToPhoneType(phone.label));
+    for (Item phone : contact.phones)
+    {
+      op = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
+              .withValue(ContactsContract.Data.MIMETYPE, Phone.CONTENT_ITEM_TYPE)
+              .withValue(ContactsContract.Data.RAW_CONTACT_ID, contact.identifier)
+              .withValue(Phone.NUMBER, phone.value)
+              .withValue(Phone.TYPE, Item.stringToPhoneType(phone.label));
       ops.add(op.build());
     }
 
-    //Emails
     for (Item email : contact.emails) {
-      op = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
-              .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, contact.identifier)
-              .withValue(ContactsContract.Data.MIMETYPE, CommonDataKinds.Email.CONTENT_ITEM_TYPE)
+      op = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
+              .withValue(ContactsContract.Data.MIMETYPE, Email.CONTENT_ITEM_TYPE)
+              .withValue(ContactsContract.Data.RAW_CONTACT_ID, contact.identifier)
               .withValue(CommonDataKinds.Email.ADDRESS, email.value)
               .withValue(CommonDataKinds.Email.TYPE, Item.stringToEmailType(email.label));
       ops.add(op.build());
     }
-    //Postal addresses
+
     for (PostalAddress address : contact.postalAddresses) {
-      op = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
-              .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, contact.identifier)
-              .withValue(ContactsContract.Data.MIMETYPE, CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE)
+      Log.d("KYLETEST", "Building address with type:" + PostalAddress.stringToPostalAddressType(address.label)
+      + " Street:" + address.street + " City:" + address.city + " Region:" + address.region + " PostCode:" + address.postcode + " Country:" + address.country);
+      op = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
+              .withValue(ContactsContract.Data.MIMETYPE, StructuredPostal.CONTENT_ITEM_TYPE)
+              .withValue(ContactsContract.Data.RAW_CONTACT_ID, contact.identifier)
               .withValue(CommonDataKinds.StructuredPostal.TYPE, PostalAddress.stringToPostalAddressType(address.label))
               .withValue(CommonDataKinds.StructuredPostal.STREET, address.street)
               .withValue(CommonDataKinds.StructuredPostal.CITY, address.city)
@@ -381,11 +393,26 @@ public class ContactsServicePlugin implements MethodCallHandler {
               .withValue(CommonDataKinds.StructuredPostal.COUNTRY, address.country);
       ops.add(op.build());
     }
+    // Log.d("KYLETEST","Added update query for Postal Address");
 
+      // op = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
+      //         .withSelection(ContactsContract.Data.CONTACT_ID + "=? AND " + ContactsContract.Data.MIMETYPE + "=?",
+      //         new String[]{String.valueOf(contact.identifier), ContactsContract.CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE})
+      //         //.withValue(CommonDataKinds.StructuredPostal.TYPE, PostalAddress.stringToPostalAddressType(address.label))
+      //         .withValue(CommonDataKinds.StructuredPostal.STREET, "105 Sheffield Ct")
+      //         .withValue(CommonDataKinds.StructuredPostal.CITY, "Denville")
+      //         //.withValue(CommonDataKinds.StructuredPostal.REGION, address.region)
+      //         .withValue(CommonDataKinds.StructuredPostal.POSTCODE, "07834");
+      //         //.withValue(CommonDataKinds.StructuredPostal.COUNTRY, address.country);
+      // ops.add(op.build());
     try {
+      Log.d("KYLETEST","Attempting to apply bath");
       contentResolver.applyBatch(ContactsContract.AUTHORITY, ops);
+      Log.d("KYLETEST","Returning TRUE");
       return true;
     } catch (Exception e) {
+      Log.d("KYLETEST","EXCEPTION, returning false!");
+      Log.d("KYLETEST", e.toString());
       return false;
     }
   }

@@ -1,5 +1,7 @@
 package flutter.plugins.contactsservice.contactsservice;
 
+import android.util.Log;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -77,8 +79,10 @@ public class Contact {
             }
         }
         ArrayList<HashMap> postalAddresses = (ArrayList<HashMap>) map.get("postalAddresses");
+        Log.d("KYLETEST", "Contact fromMap found " + postalAddresses.size() + " postalAddresses");
         if(postalAddresses != null) {
             for (HashMap postalAddress : postalAddresses) {
+                Log.d("KYLETEST", "postalAddress has values size:" + postalAddress.values().size());
                 contact.postalAddresses.add(PostalAddress.fromMap(postalAddress));
             }
         }

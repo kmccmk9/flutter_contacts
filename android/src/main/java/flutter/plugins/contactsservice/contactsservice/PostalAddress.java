@@ -3,6 +3,7 @@ package flutter.plugins.contactsservice.contactsservice;
 import android.annotation.TargetApi;
 import android.database.Cursor;
 import android.os.Build;
+import android.util.Log;
 
 import static android.provider.ContactsContract.CommonDataKinds;
 import static android.provider.ContactsContract.CommonDataKinds.StructuredPostal;
@@ -47,7 +48,15 @@ public class PostalAddress {
 
     public static PostalAddress fromMap(HashMap<String,String> postalAddress) {
         PostalAddress address = new PostalAddress();
-        address.map = postalAddress;
+        Log.d("KYLETEST", "Inside PostalAddress fromMap");
+        address.label = postalAddress.get("label");
+        address.street = postalAddress.get("street");
+        address.city = postalAddress.get("city");
+        address.postcode = postalAddress.get("postcode");
+        address.region = postalAddress.get("region");
+        address.country = postalAddress.get("country");
+        //address.map = postalAddress;
+        Log.d("KYLETEST", "Logging address street before returning to contact:" + address.street);
         return address;
     }
 
