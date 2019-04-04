@@ -345,7 +345,7 @@ public class ContactsServicePlugin implements MethodCallHandler {
             .withSelection(ContactsContract.Data.CONTACT_ID + "=? AND " + ContactsContract.Data.MIMETYPE + "=?",
                     new String[]{String.valueOf(contact.identifier), ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE})
             .withValue(StructuredName.GIVEN_NAME, contact.givenName)
-            .withValue(StructuredName.MIDDLE_NAME, "pleaseupdate")
+            .withValue(StructuredName.MIDDLE_NAME, contact.middleName)
             .withValue(StructuredName.FAMILY_NAME, contact.familyName)
             .withValue(StructuredName.PREFIX, contact.prefix)
             .withValue(StructuredName.SUFFIX, contact.suffix);
