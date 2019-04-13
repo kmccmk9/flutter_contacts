@@ -21,6 +21,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 
@@ -152,12 +153,14 @@ public class ContactsServicePlugin implements MethodCallHandler {
   }
 
   private Cursor getCursor(String query){
-    String selection = ContactsContract.Data.MIMETYPE + "=? OR " + ContactsContract.Data.MIMETYPE + "=? OR " + ContactsContract.Data.MIMETYPE + "=? OR " + ContactsContract.Data.MIMETYPE + "=? OR " + ContactsContract.Data.MIMETYPE + "=?";
-    String[] selectionArgs = new String[]{Email.CONTENT_ITEM_TYPE, Phone.CONTENT_ITEM_TYPE, StructuredName.CONTENT_ITEM_TYPE, Organization.CONTENT_ITEM_TYPE, StructuredPostal.CONTENT_ITEM_TYPE};
+    String selection = ContactsContract.Data.MIMETYPE + "=? OR " + ContactsContract.Data.MIMETYPE + "=? OR " + ContactsContract.Data.MIMETYPE + "=? OR " + ContactsContract.Data.MIMETYPE + "=? OR " + ContactsContract.Data.MIMETYPE + "=? OR " + ContactsContract.Data.MIMETYPE + "=?";
+    String[] selectionArgs = new String[]{Email.CONTENT_ITEM_TYPE, Phone.CONTENT_ITEM_TYPE, StructuredName.CONTENT_ITEM_TYPE, Organization.CONTENT_ITEM_TYPE, StructuredPostal.CONTENT_ITEM_TYPE, CommonDataKinds.Identity.CONTENT_ITEM_TYPE};
     if(query != null){
-      selectionArgs = new String[]{"%" + query + "%"};
-      selection = ContactsContract.Contacts.DISPLAY_NAME_PRIMARY + " LIKE ?";
+      selectionArgs = new String[]{"%" + query + "%", "%" + query + "%"};
+      selection = ContactsContract.Contacts.DISPLAY_NAME_PRIMARY + " LIKE ? OR " + CommonDataKinds.Identity.CONTACT_ID + " LIKE ?";
     }
+    Log.d("KYLETEST", Arrays.toString(selectionArgs));
+    Log.d("KYLETEST", selection);
     return contentResolver.query(ContactsContract.Data.CONTENT_URI, PROJECTION, selection, selectionArgs, null);
   }
 
